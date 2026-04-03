@@ -73,8 +73,6 @@ That produces a useful operator workflow without hiding decisions inside one pro
 
 ### 1. Install dependencies
 
-PowerShell on this machine blocks `npm.ps1`, so use:
-
 ```powershell
 cmd /c npm install
 ```
