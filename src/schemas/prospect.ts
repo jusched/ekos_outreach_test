@@ -7,21 +7,23 @@ const trimmedRequiredString = (field: string) =>
   z.string().trim().min(1, `${field} is required.`);
 
 export const prospectFormSchema = z.object({
-  clinicName: trimmedRequiredString("Clinic name"),
+  companyName: trimmedRequiredString("Company name"),
   websiteUrl: trimmedRequiredString("Website URL").refine(
     (value) => websitePattern.test(value),
-    "Website URL must be a valid clinic website.",
+    "Website URL must be a valid company website.",
   ),
-  specialty: trimmedRequiredString("Specialty"),
-  location: trimmedRequiredString("Location"),
+  contactName: trimmedRequiredString("Contact name"),
+  contactRole: trimmedRequiredString("Contact role"),
+  estimatedRevenue: z.coerce.number().min(0, "Estimated revenue must be non-negative"),
   salesNotes: z.union([z.string(), z.null(), z.undefined()]).optional(),
 });
 
 export const normalizedProspectSchema = z.object({
-  clinicName: z.string().min(1),
+  companyName: z.string().min(1),
   websiteUrl: z.string().url(),
-  specialty: z.string().min(1),
-  location: z.string().min(1),
+  contactName: z.string().min(1),
+  contactRole: z.string().min(1),
+  estimatedRevenue: z.number().nonnegative(),
   salesNotes: z.string().min(1).nullable(),
   warnings: z.array(z.string()),
 });
@@ -79,10 +81,11 @@ export function normalizeProspectInput(
   const warnings = salesNotes ? [] : ["No sales notes provided."];
 
   return normalizedProspectSchema.parse({
-    clinicName: parsed.clinicName.trim(),
+    companyName: parsed.companyName.trim(),
     websiteUrl: normalizeWebsiteUrl(parsed.websiteUrl),
-    specialty: parsed.specialty.trim().toLowerCase(),
-    location: parsed.location.trim(),
+    contactName: parsed.contactName.trim(),
+    contactRole: parsed.contactRole.trim(),
+    estimatedRevenue: parsed.estimatedRevenue,
     salesNotes,
     warnings,
   });
@@ -95,7 +98,7 @@ export function createEmptyRunRecord(
   return runRecordSchema.parse({
     id,
     status: "pending",
-    humanReviewStatus: "pending",
+    humanReviewStatus: "approved",
     gmailDraftStatus: "not_started",
     normalizedInput,
   });

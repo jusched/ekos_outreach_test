@@ -35,10 +35,11 @@ describe("app database", () => {
     });
     try {
       const run = createEmptyRunRecord("run_123", {
-        clinicName: "Bright Smile Dental",
+        companyName: "Bright Smile Dental",
         websiteUrl: "https://brightsmile.example.com",
-        specialty: "dentistry",
-        location: "Austin, TX",
+        contactName: "John Doe",
+        contactRole: "Founder",
+        estimatedRevenue: 400000,
         salesNotes: "Interested in fewer no-shows.",
         warnings: [],
       });

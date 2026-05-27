@@ -211,18 +211,18 @@ export async function executeProspectWorkflow({
 
       if (latestEvaluation.approved) {
         database.updateRun(runId, {
-          status: "needs_review",
+          status: "completed",
           gmailDraftStatus: "not_started",
         });
         database.insertRunEvent({
           runId,
           level: "info",
-          message: "Workflow completed and is ready for human review.",
+          message: "Workflow completed successfully. Outbound email is ready.",
           metadata: {},
         });
         return {
           runId,
-          status: "needs_review" as const,
+          status: "completed" as const,
         };
       }
 
@@ -272,7 +272,7 @@ function createRunRecord(
   return {
     id: runId,
     status: "pending" as const,
-    humanReviewStatus: "pending" as const,
+    humanReviewStatus: "approved" as const,
     gmailDraftStatus: "not_started" as const,
     normalizedInput: normalized,
   };

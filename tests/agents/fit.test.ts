@@ -3,13 +3,14 @@ import { describe, expect, test } from "vitest";
 import { scoreProspectFit } from "@/src/agents/fit";
 
 describe("fit scoring", () => {
-  test("scores clinic fit with explicit evidence and unknowns", () => {
+  test("scores company fit with explicit evidence and unknowns", () => {
     const assessment = scoreProspectFit({
-      clinicName: "Bright Smile Dental",
-      websiteUrl: "https://brightsmile.example.com",
-      specialty: "dentistry",
-      location: "Austin, TX",
-      salesNotes: "Interested in fewer no-shows.",
+      companyName: "Agzaga",
+      websiteUrl: "https://agzaga.com",
+      contactName: "John Doe",
+      contactRole: "Founder",
+      estimatedRevenue: 500000,
+      salesNotes: "Interested in scaling marketing.",
       warnings: [],
     }, {
       groundedFacts: [

@@ -23,53 +23,58 @@ export default async function HomePage({
       <section className="card stack">
         <div className="sectionHeader">
           <div>
-            <p className="eyebrow">Track B</p>
-            <h1>Clinic Sales & Outreach Agent</h1>
+            <p className="eyebrow">Lean Marketing</p>
+            <h1>Outreach Agent</h1>
           </div>
           <div className="statusRow">
             <StatusPill
-              label={readiness.workflowReady ? "Workflow Ready" : "Workflow Blocked"}
+              label={readiness.workflowReady ? "System Ready" : "System Blocked"}
               tone={readiness.workflowReady ? "good" : "warn"}
-            />
-            <StatusPill
-              label={readiness.gmailReady ? "Gmail OAuth Ready" : "Gmail OAuth Missing"}
-              tone={readiness.gmailReady ? "good" : "warn"}
             />
           </div>
         </div>
         <p className="muted">
-          Enter a clinic, run the multi-step workflow, review the evidence and draft, then
-          create a Gmail draft only after evaluator and human approval.
+          Enter a target company and decision maker, run the multi-step research, scoring, and drafting workflow, and copy the final approved email draft.
         </p>
         {error ? <p className="banner banner--error">{error}</p> : null}
         {message ? <p className="banner banner--info">{message}</p> : null}
         <form action={submitProspectAction} className="gridForm">
           <label>
-            Clinic name
-            <input name="clinicName" placeholder="Bright Smile Dental" required type="text" />
+            Company name
+            <input name="companyName" placeholder="Agzaga" required type="text" />
           </label>
           <label>
             Website URL
             <input
               name="websiteUrl"
-              placeholder="https://brightsmile.example.com"
+              placeholder="https://agzaga.com"
               required
               type="text"
             />
           </label>
           <label>
-            Specialty / practice type
-            <input name="specialty" placeholder="Dentistry" required type="text" />
+            Contact name
+            <input name="contactName" placeholder="John Doe" required type="text" />
           </label>
           <label>
-            Location
-            <input name="location" placeholder="Austin, TX" required type="text" />
+            Contact role
+            <input name="contactRole" placeholder="Founder & CEO" required type="text" />
+          </label>
+          <label className="fullWidth">
+            Estimated annual revenue (USD)
+            <input
+              name="estimatedRevenue"
+              placeholder="360000"
+              required
+              type="number"
+              min="0"
+            />
           </label>
           <label className="fullWidth">
             Sales notes
             <textarea
               name="salesNotes"
-              placeholder="Optional operator context or discovery notes."
+              placeholder="Optional discovery notes or known marketing challenges."
               rows={5}
             />
           </label>
@@ -91,8 +96,8 @@ export default async function HomePage({
             {runs.map((run) => (
               <li key={run.id}>
                 <Link href={`/runs/${run.id}`}>
-                  <strong>{run.normalizedInput.clinicName}</strong>
-                  <span>{run.normalizedInput.specialty}</span>
+                  <strong>{run.normalizedInput.companyName}</strong>
+                  <span>{run.normalizedInput.contactRole} ({run.normalizedInput.contactName})</span>
                   <StatusPill
                     label={run.status}
                     tone={

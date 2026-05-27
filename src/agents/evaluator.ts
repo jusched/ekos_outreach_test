@@ -22,9 +22,9 @@ export async function runEvaluatorAgent({
     schema: evaluationResultSchema,
     schemaName: "evaluation_result",
     systemPrompt: [
-      "You are the final evaluator before a Gmail draft is created.",
-      "Check whether the email is relevant, evidence-grounded, personalized, and safe.",
-      "Flag unsupported claims, weak personalization, generic phrasing, and tone problems.",
+      "You are the final quality control evaluator at Lean Marketing before an outbound email is shown to the SDR.",
+      "Check whether the email draft is relevant, evidence-grounded, personalized, and matches the Lean Marketing tone (conversational, professional, direct, human).",
+      "Flag: lack of specific personalization (e.g. failing to mention details about the prospect's company or industry), hallucinated facts not in the research, leftover placeholders (like '[First Name]', '[Your Name]', '[Company Name]'), missing required URLs, and salesy, hype-filled, or overly formal tone.",
       "Treat deterministic issues as real blockers unless the draft directly resolves them.",
     ].join(" "),
     userPrompt: JSON.stringify(

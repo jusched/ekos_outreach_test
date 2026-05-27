@@ -1,15 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import {
-  createGmailDraftAction,
-  rerunWorkflowAction,
-  reviewRunAction,
-} from "@/app/actions";
-import { ReviewControls } from "@/src/components/review-controls";
+import { rerunWorkflowAction } from "@/app/actions";
+import { CopyButton } from "@/src/components/copy-button";
 import { StatusPill } from "@/src/components/status-pill";
 import { SubmitButton } from "@/src/components/submit-button";
 import { getAppDatabase } from "@/src/lib/app-database";
+import type { OutreachDraft } from "@/src/schemas/outreach";
 
 function toneForStatus(status: string) {
   if (status === "completed" || status === "created" || status === "approved") {
@@ -34,19 +31,19 @@ export default async function RunDetailPage({
   const query = await searchParams;
   const database = getAppDatabase();
   const detail = database.getRunDetail(id);
-  const gmailAccount = database.getGmailAccount();
 
   if (!detail) {
     notFound();
   }
 
-  const evaluatorResults = detail.stageResults.filter((stage) => stage.stageName === "evaluation");
   const outreachDrafts = detail.stageResults.filter(
     (stage) => stage.stageName === "outreach_writer",
   );
-  const evaluatorApproved =
-    Boolean(evaluatorResults.at(-1)?.payload) &&
-    Boolean((evaluatorResults.at(-1)?.payload as { approved?: boolean }).approved);
+
+  const latestApprovedDraft = detail.run.status === "completed" && outreachDrafts.length > 0
+    ? (outreachDrafts.at(-1)?.payload as OutreachDraft)
+    : null;
+
   const error = typeof query.error === "string" ? query.error : null;
   const message = typeof query.message === "string" ? query.message : null;
 
@@ -58,19 +55,11 @@ export default async function RunDetailPage({
             <Link className="textLink" href="/">
               ← Back to intake
             </Link>
-            <h1>{detail.run.normalizedInput.clinicName}</h1>
+            <h1>{detail.run.normalizedInput.companyName}</h1>
             <p className="muted">Run ID: {detail.run.id}</p>
           </div>
           <div className="statusRow">
             <StatusPill label={detail.run.status} tone={toneForStatus(detail.run.status)} />
-            <StatusPill
-              label={`Human: ${detail.run.humanReviewStatus}`}
-              tone={toneForStatus(detail.run.humanReviewStatus)}
-            />
-            <StatusPill
-              label={`Gmail: ${detail.run.gmailDraftStatus}`}
-              tone={toneForStatus(detail.run.gmailDraftStatus)}
-            />
           </div>
         </div>
         {error ? <p className="banner banner--error">{error}</p> : null}
@@ -86,48 +75,46 @@ export default async function RunDetailPage({
               <form action={rerunWorkflowAction.bind(null, detail.run.id)}>
                 <SubmitButton idleLabel="Rerun Full Workflow" pendingLabel="Rerunning..." />
               </form>
-              <div className="buttonRow">
-                <form action={reviewRunAction.bind(null, detail.run.id, true)}>
-                  <button type="submit">Approve Draft</button>
-                </form>
-                <form action={reviewRunAction.bind(null, detail.run.id, false)}>
-                  <button className="secondaryButton" type="submit">
-                    Reject Draft
-                  </button>
-                </form>
-              </div>
-              <div className="oauthBox">
-                <p className="muted">
-                  Gmail connection: {gmailAccount ? gmailAccount.email : "not connected"}
-                </p>
-                <Link
-                  className="buttonLink"
-                  href={`/api/google/connect?next=${encodeURIComponent(`/runs/${detail.run.id}`)}`}
-                >
-                  {gmailAccount ? "Reconnect Gmail" : "Connect Gmail"}
-                </Link>
-              </div>
-              <form action={createGmailDraftAction.bind(null, detail.run.id)} className="stack">
-                <label>
-                  Recipient email
-                  <input
-                    name="recipientEmail"
-                    placeholder="manager@clinic.example.com"
-                    required
-                    type="email"
-                  />
-                </label>
-                <ReviewControls
-                  evaluatorApproved={evaluatorApproved}
-                  gmailConnected={Boolean(gmailAccount)}
-                  gmailDraftStatus={detail.run.gmailDraftStatus}
-                  humanReviewStatus={detail.run.humanReviewStatus}
-                />
-              </form>
             </div>
           </div>
         </div>
       </section>
+
+      {latestApprovedDraft ? (
+        <section className="card stack" style={{ border: "2px solid var(--accent)" }}>
+          <div className="sectionHeader">
+            <h2>Generated Outreach Email Draft</h2>
+            <span className="statusPill statusPill--good">Ready to copy</span>
+          </div>
+          
+          <div className="stack" style={{ gap: "1.5rem" }}>
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <strong>Subject Line</strong>
+                <CopyButton text={latestApprovedDraft.subject} label="Subject" />
+              </div>
+              <input
+                readOnly
+                value={latestApprovedDraft.subject}
+                style={{ background: "#faf7f2", margin: 0, fontWeight: "600" }}
+              />
+            </div>
+            
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
+                <strong>Email Body</strong>
+                <CopyButton text={latestApprovedDraft.body} label="Body" />
+              </div>
+              <textarea
+                readOnly
+                rows={12}
+                value={latestApprovedDraft.body}
+                style={{ background: "#faf7f2", margin: 0, resize: "vertical", fontFamily: "inherit" }}
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="card stack">
         <h2>Stage Results</h2>

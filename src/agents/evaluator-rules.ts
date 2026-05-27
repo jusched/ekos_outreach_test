@@ -44,9 +44,32 @@ export function validateDraftHardRules({
   const body = normalize(draft.body);
   const evidencePool = [...research.groundedFacts, ...research.operationalSignals].map(normalize);
 
-  if (!body.includes(normalize(prospect.clinicName))) {
-    issues.push("The email does not mention the clinic by name.");
-    requiredFixes.push("Reference the clinic name directly in the email.");
+  if (!body.includes(normalize(prospect.companyName))) {
+    issues.push("The email does not mention the company by name.");
+    requiredFixes.push("Reference the company name directly in the email.");
+  }
+
+  const firstName = prospect.contactName.trim().split(/\s+/)[0] || prospect.contactName;
+  if (!body.includes(normalize(firstName))) {
+    issues.push("The email does not mention the contact person's first name.");
+    requiredFixes.push(`Address the contact by their first name (${firstName}) directly.`);
+  }
+
+  if (body.includes("[first name]") || body.includes("[your name]") || body.includes("[company name]")) {
+    issues.push("The email contains unresolved bracket placeholders.");
+    requiredFixes.push("Replace all bracket placeholders like [First Name] or [Your Name] with actual values.");
+  }
+
+  const requiredLinks = [
+    "https://try.leanmarketing.com/our-approach",
+    "https://leanmarketing.com/case-studies",
+  ];
+
+  for (const link of requiredLinks) {
+    if (!body.includes(link)) {
+      issues.push(`The email is missing the required link: ${link}`);
+      requiredFixes.push(`Include the link exactly: ${link}`);
+    }
   }
 
   const hasGroundedAnchor = draft.personalizationAnchors.some((anchor) =>

@@ -6,8 +6,6 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createAppDatabase } from "@/src/db/client";
 import {
-  applyHumanReviewDecision,
-  createGmailDraftForRun,
   executeProspectWorkflow,
 } from "@/src/workflows/run-workflow";
 
@@ -59,49 +57,47 @@ function createWorkflowHarness() {
 }
 
 describe("prospect workflow", () => {
-  test("runs the happy path through human approval and Gmail draft creation", async () => {
+  test("runs the happy path through evaluator approval and marks completed", async () => {
     const { database, fetchWebsite } = createWorkflowHarness();
-    const gmailClient = {
-      createDraft: vi.fn(async () => ({ id: "draft_123", messageId: "msg_123" })),
-    };
 
     try {
       const workflow = await executeProspectWorkflow({
         input: {
-          clinicName: "Bright Smile Dental",
+          companyName: "Bright Smile Dental",
           websiteUrl: "https://brightsmile.example.com",
-          specialty: "dentistry",
-          location: "Austin, TX",
-          salesNotes: "Interested in reducing no-shows.",
+          contactName: "John Doe",
+          contactRole: "Founder",
+          estimatedRevenue: 400000,
+          salesNotes: "Interested in scaling marketing.",
         },
         database,
         fetchWebsite,
         researchAgent: async () => ({
           groundedFacts: [
-            "The clinic supports online booking.",
-            "The clinic mentions insurance verification.",
+            "Bright Smile Dental is looking to scale their marketing.",
+            "They rely on word-of-mouth referral networks.",
           ],
-          operationalSignals: ["The website emphasizes digital patient intake."],
+          operationalSignals: ["Their website has no email signup forms."],
           unknowns: [],
           risks: [],
           sourcePages: [
             {
               pageUrl: "https://brightsmile.example.com/",
-              textSnippet: "Book online and verify insurance before your visit.",
+              textSnippet: "We serve patients in the local Austin community.",
             },
           ],
           confidence: 0.86,
         }),
         writerAgent: async () => ({
-          subject: "Idea for Bright Smile Dental's booking workflow",
-          body: "Hi team,\n\nI noticed Bright Smile Dental highlights online booking and insurance verification.\n\nBest,\nAlex",
+          subject: "got a sec, John?",
+          body: "Hi John,\n\nI noticed Bright Smile Dental is looking to scale their marketing. Check out our approach at https://try.leanmarketing.com/our-approach and case studies at https://leanmarketing.com/case-studies.\n\nBest,\nAlex",
           personalizationAnchors: [
-            "Bright Smile Dental highlights online booking and insurance verification.",
+            "I noticed Bright Smile Dental is looking to scale.",
           ],
           claimsMade: [
-            "Bright Smile Dental highlights online booking and insurance verification.",
+            "Bright Smile Dental is looking to scale.",
           ],
-          callToAction: "Open to a quick look at scheduling and front-desk workflow improvements?",
+          callToAction: "Open to a quick chat?",
         }),
         evaluatorAgent: async () => ({
           approved: true,
@@ -112,32 +108,11 @@ describe("prospect workflow", () => {
         }),
       });
 
-      expect(workflow.status).toBe("needs_review");
-
-      await applyHumanReviewDecision({
-        runId: workflow.runId,
-        approved: true,
-        database,
-      });
-      database.saveGmailAccount({
-        email: "rep@example.com",
-        accessToken: "access-token",
-        refreshToken: "refresh-token",
-        expiryDate: 1730000000000,
-      });
-
-      const draft = await createGmailDraftForRun({
-        runId: workflow.runId,
-        recipientEmail: "manager@brightsmile.example.com",
-        database,
-        gmailClient,
-      });
+      expect(workflow.status).toBe("completed");
 
       const detail = database.getRunDetail(workflow.runId);
-
-      expect(draft.id).toBe("draft_123");
-      expect(gmailClient.createDraft).toHaveBeenCalledTimes(1);
-      expect(detail?.run.gmailDraftStatus).toBe("created");
+      expect(detail?.run.status).toBe("completed");
+      expect(detail?.run.humanReviewStatus).toBe("approved");
     } finally {
       database.close();
     }
@@ -161,10 +136,11 @@ describe("prospect workflow", () => {
 
       const workflow = await executeProspectWorkflow({
         input: {
-          clinicName: "Riverside Clinic",
+          companyName: "Riverside Clinic",
           websiteUrl: "https://riverside.example.com",
-          specialty: "family medicine",
-          location: "Bogota, Colombia",
+          contactName: "John Doe",
+          contactRole: "Founder",
+          estimatedRevenue: 400000,
           salesNotes: "Asked about reducing missed appointments.",
         },
         database,
@@ -173,8 +149,8 @@ describe("prospect workflow", () => {
         },
         researchAgent,
         writerAgent: async () => ({
-          subject: "Quick idea for Riverside Clinic",
-          body: "Hi Riverside Clinic team,\n\nYou mentioned reducing missed appointments.\n\nBest,\nAlex",
+          subject: "got a sec, John?",
+          body: "Hi John,\n\nI noticed Riverside Clinic has questions about reducing missed appointments.\nCheck out our approach at https://try.leanmarketing.com/our-approach and case studies at https://leanmarketing.com/case-studies.\n\nBest,\nAlex",
           personalizationAnchors: ["Asked about reducing missed appointments."],
           claimsMade: ["You mentioned reducing missed appointments."],
           callToAction: "Open to a short intro?",
@@ -188,7 +164,7 @@ describe("prospect workflow", () => {
         }),
       });
 
-      expect(workflow.status).toBe("needs_review");
+      expect(workflow.status).toBe("completed");
       expect(researchAgent).toHaveBeenCalledWith(
         expect.objectContaining({
           websiteEvidence: [],
@@ -205,10 +181,11 @@ describe("prospect workflow", () => {
     try {
       const workflow = await executeProspectWorkflow({
         input: {
-          clinicName: "Bright Smile Dental",
+          companyName: "Bright Smile Dental",
           websiteUrl: "https://brightsmile.example.com",
-          specialty: "dentistry",
-          location: "Austin, TX",
+          contactName: "John Doe",
+          contactRole: "Founder",
+          estimatedRevenue: 400000,
           salesNotes: "Interested in reducing no-shows.",
         },
         database,
@@ -255,10 +232,10 @@ describe("prospect workflow", () => {
         callToAction: "Open to chatting?",
       })
       .mockResolvedValueOnce({
-        subject: "Idea for Bright Smile Dental's booking workflow",
-        body: "Hi team,\n\nI noticed Bright Smile Dental highlights online booking.\n\nBest,\nAlex",
-        personalizationAnchors: ["Bright Smile Dental highlights online booking."],
-        claimsMade: ["Bright Smile Dental highlights online booking."],
+        subject: "got a sec, John?",
+        body: "Hi John,\n\nI noticed Bright Smile Dental could scale their marketing.\nCheck out our approach at https://try.leanmarketing.com/our-approach and case studies at https://leanmarketing.com/case-studies.\n\nBest,\nAlex",
+        personalizationAnchors: ["Bright Smile Dental could scale their marketing."],
+        claimsMade: ["Bright Smile Dental could scale their marketing."],
         callToAction: "Open to a quick intro?",
       });
 
@@ -282,16 +259,17 @@ describe("prospect workflow", () => {
     try {
       const workflow = await executeProspectWorkflow({
         input: {
-          clinicName: "Bright Smile Dental",
+          companyName: "Bright Smile Dental",
           websiteUrl: "https://brightsmile.example.com",
-          specialty: "dentistry",
-          location: "Austin, TX",
+          contactName: "John Doe",
+          contactRole: "Founder",
+          estimatedRevenue: 400000,
           salesNotes: null,
         },
         database,
         fetchWebsite,
         researchAgent: async () => ({
-          groundedFacts: ["The clinic supports online booking."],
+          groundedFacts: ["Bright Smile Dental could scale their marketing."],
           operationalSignals: [],
           unknowns: [],
           risks: [],
@@ -306,7 +284,7 @@ describe("prospect workflow", () => {
       const writerStages =
         detail?.stageResults.filter((stage) => stage.stageName === "outreach_writer") ?? [];
 
-      expect(workflow.status).toBe("needs_review");
+      expect(workflow.status).toBe("completed");
       expect(writerAgent).toHaveBeenCalledTimes(2);
       expect(evaluatorAgent).toHaveBeenCalledTimes(2);
       expect(writerStages).toHaveLength(2);
@@ -321,10 +299,11 @@ describe("prospect workflow", () => {
     try {
       const workflow = await executeProspectWorkflow({
         input: {
-          clinicName: "Bright Smile Dental",
+          companyName: "Bright Smile Dental",
           websiteUrl: "https://brightsmile.example.com",
-          specialty: "dentistry",
-          location: "Austin, TX",
+          contactName: "John Doe",
+          contactRole: "Founder",
+          estimatedRevenue: 400000,
           salesNotes: null,
         },
         database,
@@ -360,148 +339,6 @@ describe("prospect workflow", () => {
       expect(workflow.status).toBe("failed");
       expect(detail?.run.gmailDraftStatus).toBe("blocked");
       expect(evaluatorStages).toHaveLength(3);
-    } finally {
-      database.close();
-    }
-  });
-
-  test("prevents Gmail draft creation after human rejection", async () => {
-    const { database, fetchWebsite } = createWorkflowHarness();
-    const gmailClient = {
-      createDraft: vi.fn(async () => ({ id: "draft_123", messageId: "msg_123" })),
-    };
-
-    try {
-      const workflow = await executeProspectWorkflow({
-        input: {
-          clinicName: "Bright Smile Dental",
-          websiteUrl: "https://brightsmile.example.com",
-          specialty: "dentistry",
-          location: "Austin, TX",
-          salesNotes: null,
-        },
-        database,
-        fetchWebsite,
-        researchAgent: async () => ({
-          groundedFacts: ["The clinic supports online booking."],
-          operationalSignals: [],
-          unknowns: [],
-          risks: [],
-          sourcePages: [],
-          confidence: 0.76,
-        }),
-        writerAgent: async () => ({
-          subject: "Idea for Bright Smile Dental",
-          body: "Hi Bright Smile Dental team,\n\nI noticed your online booking flow.\n\nBest,\nAlex",
-          personalizationAnchors: ["The clinic supports online booking."],
-          claimsMade: ["The clinic supports online booking."],
-          callToAction: "Open to a quick intro?",
-        }),
-        evaluatorAgent: async () => ({
-          approved: true,
-          score: 90,
-          issues: [],
-          requiredFixes: [],
-          confidence: 0.8,
-        }),
-      });
-
-      await applyHumanReviewDecision({
-        runId: workflow.runId,
-        approved: false,
-        database,
-      });
-
-      await expect(
-        createGmailDraftForRun({
-          runId: workflow.runId,
-          recipientEmail: "manager@brightsmile.example.com",
-          database,
-          gmailClient,
-        }),
-      ).rejects.toThrow("Human review must approve");
-
-      expect(gmailClient.createDraft).not.toHaveBeenCalled();
-    } finally {
-      database.close();
-    }
-  });
-
-  test("keeps artifacts and marks blocked or failed when Gmail auth or draft creation is unavailable", async () => {
-    const { database, fetchWebsite } = createWorkflowHarness();
-
-    try {
-      const workflow = await executeProspectWorkflow({
-        input: {
-          clinicName: "Bright Smile Dental",
-          websiteUrl: "https://brightsmile.example.com",
-          specialty: "dentistry",
-          location: "Austin, TX",
-          salesNotes: null,
-        },
-        database,
-        fetchWebsite,
-        researchAgent: async () => ({
-          groundedFacts: ["The clinic supports online booking."],
-          operationalSignals: [],
-          unknowns: [],
-          risks: [],
-          sourcePages: [],
-          confidence: 0.76,
-        }),
-        writerAgent: async () => ({
-          subject: "Idea for Bright Smile Dental",
-          body: "Hi Bright Smile Dental team,\n\nI noticed your online booking flow.\n\nBest,\nAlex",
-          personalizationAnchors: ["The clinic supports online booking."],
-          claimsMade: ["The clinic supports online booking."],
-          callToAction: "Open to a quick intro?",
-        }),
-        evaluatorAgent: async () => ({
-          approved: true,
-          score: 90,
-          issues: [],
-          requiredFixes: [],
-          confidence: 0.8,
-        }),
-      });
-
-      await applyHumanReviewDecision({
-        runId: workflow.runId,
-        approved: true,
-        database,
-      });
-
-      await expect(
-        createGmailDraftForRun({
-          runId: workflow.runId,
-          recipientEmail: "manager@brightsmile.example.com",
-          database,
-        }),
-      ).rejects.toThrow("No Gmail account connected");
-
-      database.saveGmailAccount({
-        email: "rep@example.com",
-        accessToken: "access-token",
-        refreshToken: "refresh-token",
-        expiryDate: 1730000000000,
-      });
-
-      await expect(
-        createGmailDraftForRun({
-          runId: workflow.runId,
-          recipientEmail: "manager@brightsmile.example.com",
-          database,
-          gmailClient: {
-            createDraft: async () => {
-              throw new Error("Gmail draft failed");
-            },
-          },
-        }),
-      ).rejects.toThrow("Gmail draft failed");
-
-      const detail = database.getRunDetail(workflow.runId);
-      expect(detail?.stageResults.length).toBeGreaterThan(0);
-      expect(detail?.run.gmailDraftStatus).toBe("failed");
     } finally {
       database.close();
     }

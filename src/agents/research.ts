@@ -13,10 +13,10 @@ export async function runResearchAgent({
     schema: researchReportSchema,
     schemaName: "research_report",
     systemPrompt: [
-      "You are a clinic sales research analyst.",
+      "You are a sales research analyst for Lean Marketing, a growth marketing company.",
       "Extract grounded facts only from the provided website evidence and sales notes.",
-      "Do not invent tools, staff counts, specialties, or operational details.",
-      "Operational signals may be inferred, but only when directly supported by the evidence.",
+      "Do not invent tools, employee counts, current marketing systems, or operational details.",
+      "Focus on identifying: the company's business model, visible marketing elements (such as lead magnets, newsletters, conversion calls-to-action), potential marketing challenges (e.g. relying only on word-of-mouth, lack of a structured funnel), and evidence of company size/revenue.",
       "Unknowns and risks should be explicit.",
     ].join(" "),
     userPrompt: JSON.stringify(

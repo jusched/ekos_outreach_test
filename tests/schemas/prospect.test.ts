@@ -10,21 +10,23 @@ import {
 describe("prospect schemas", () => {
   test("normalizes trimmed form input into a consistent prospect payload", () => {
     const formInput = {
-      clinicName: "  Bright Smile Dental  ",
-      websiteUrl: "brightsmile.example.com/services?utm_source=google&utm_campaign=spring",
-      specialty: "  general dentistry ",
-      location: "  Austin, TX ",
-      salesNotes: "  Interested in reducing no-shows.  ",
+      companyName: "  Agzaga  ",
+      websiteUrl: "agzaga.com/services?utm_source=google&utm_campaign=spring",
+      contactName: "  John Doe ",
+      contactRole: "  Founder ",
+      estimatedRevenue: 500000,
+      salesNotes: "  Interested in scaling marketing.  ",
     };
 
     const normalized = normalizeProspectInput(formInput);
 
     expect(normalized).toEqual({
-      clinicName: "Bright Smile Dental",
-      websiteUrl: "https://brightsmile.example.com/services",
-      specialty: "general dentistry",
-      location: "Austin, TX",
-      salesNotes: "Interested in reducing no-shows.",
+      companyName: "Agzaga",
+      websiteUrl: "https://agzaga.com/services",
+      contactName: "John Doe",
+      contactRole: "Founder",
+      estimatedRevenue: 500000,
+      salesNotes: "Interested in scaling marketing.",
       warnings: [],
     });
     expect(normalizedProspectSchema.parse(normalized)).toEqual(normalized);
@@ -32,10 +34,11 @@ describe("prospect schemas", () => {
 
   test("rejects invalid prospect form payloads before a run starts", () => {
     const result = prospectFormSchema.safeParse({
-      clinicName: "",
+      companyName: "",
       websiteUrl: "not-a-url",
-      specialty: "",
-      location: "",
+      contactName: "",
+      contactRole: "",
+      estimatedRevenue: -100,
       salesNotes: 123,
     });
 
@@ -46,10 +49,11 @@ describe("prospect schemas", () => {
 
     expect(result.error.issues.map((issue) => issue.path.join("."))).toEqual(
       expect.arrayContaining([
-        "clinicName",
+        "companyName",
         "websiteUrl",
-        "specialty",
-        "location",
+        "contactName",
+        "contactRole",
+        "estimatedRevenue",
         "salesNotes",
       ]),
     );
@@ -57,10 +61,11 @@ describe("prospect schemas", () => {
 
   test("builds a pending run record from normalized prospect data", () => {
     const normalized = normalizedProspectSchema.parse({
-      clinicName: "Riverside Family Clinic",
-      websiteUrl: "https://riverside.example.com",
-      specialty: "family medicine",
-      location: "Bogota, Colombia",
+      companyName: "Superfast IT",
+      websiteUrl: "https://superfast.example.com",
+      contactName: "Jane Smith",
+      contactRole: "CEO",
+      estimatedRevenue: 400000,
       salesNotes: null,
       warnings: ["No sales notes provided."],
     });
@@ -70,7 +75,7 @@ describe("prospect schemas", () => {
     expect(record).toMatchObject({
       id: "run_123",
       status: "pending",
-      humanReviewStatus: "pending",
+      humanReviewStatus: "approved",
       gmailDraftStatus: "not_started",
       normalizedInput: normalized,
     });
